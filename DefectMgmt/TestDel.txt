@@ -1,0 +1,25 @@
+@app.route('/delete_all', methods=['POST'])
+def delete_all_records():
+    conn = get_db_connection()
+    conn.execute('DELETE FROM your_table')
+    conn.commit()
+    conn.close()
+    return redirect(url_for('confirmation'))
+
+@app.route('/confirmation')
+def confirmation():
+    return render_template('confirmation.html')
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation</title>
+</head>
+<body>
+    <h1>All records have been deleted successfully.</h1>
+    <a href="{{ url_for('index') }}">Go Back</a>
+</body>
+</html>
