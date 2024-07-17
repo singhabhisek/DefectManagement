@@ -1,0 +1,29 @@
+@app.route('/init_db')
+def init_db():
+    conn = get_db_connection()
+    conn.execute('''CREATE TABLE IF NOT EXISTS "defects" (
+        "id"	INTEGER PRIMARY KEY AUTOINCREMENT,
+        "defect_id"	TEXT NOT NULL,
+        "summary"	TEXT NOT NULL,
+        "description"	TEXT,
+        "status"	TEXT NOT NULL,
+        "priority"	TEXT,
+        "severity"	TEXT,
+        "owner"	TEXT,
+        "open_date"	TEXT,
+        "close_date"	TEXT,
+        "environment"	TEXT,
+        "application_name"	TEXT,
+        "release_version"	TEXT,
+        "reported_by"	TEXT,
+        "reported_date"	TEXT,
+        "steps_to_reproduce"	TEXT,
+        "actual_result"	TEXT,
+        "expected_result"	TEXT,
+        "attachments"	TEXT,
+        "comments"	TEXT,
+        "iteration"	TEXT,
+        "resolution"	TEXT
+    )''')
+    conn.close()
+    return "Database initialized successfully."
