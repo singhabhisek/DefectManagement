@@ -1,0 +1,591 @@
+{% extends "base.html" %} {% block title %}Dashboard{% endblock %}
+<meta charset="UTF-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Defect Portal</title>
+
+{% block content %}
+<style>
+    div.dt-buttons {
+        float: right;
+        margin: 0 5px;
+    }
+    /* Custom CSS for purple variant */
+    .card-header, .modal-header, .btn-primary, .custom-button {
+        background-color: #6f42c1; /* Purple background */
+        color: #fff; /* White text color */
+    }
+
+    .btn-secondary {
+        background-color: #6c757d; /* Dark gray background */
+        color: #fff; /* White text color */
+    }
+
+    .card {
+        border: 1px solid #6f42c1; /* Purple border */
+    }
+
+    .table-bordered th, .table-bordered td {
+        border-color: #6f42c1; /* Purple border for table */
+    }
+
+    .modal-content {
+        border: 1px solid #6f42c1; /* Purple border for modals */
+    }
+
+    /* Custom CSS for table */
+    .table-bordered {
+        border-color: #6f42c1; /* Purple border */
+    }
+
+    .table-bordered th, .table-bordered td {
+        border-color: #6f42c1; /* Purple border */
+    }
+
+    .table thead th {
+        background-color: #9c6cc1; /* Light purple for header row */
+        color: #fff; /* White text color */
+    }
+
+    .table tbody tr:nth-child(odd) {
+        background-color: #f3e5f5; /* Lightest purple for odd rows */
+    }
+
+    .table tbody tr:hover {
+        background-color: #e2d8e6; /* Gray on hovering */
+    }
+
+</style>
+<style>
+    /* Custom CSS for sidebar */
+    .sidebar {
+        background-color: #9c6cc1; /* Light purple background */
+        color: #fff; /* White text color */
+        padding-top: 20px;
+        min-height: 100vh; /* Full height of viewport */
+    }
+
+    .sidebar a {
+        color: #fff; /* White text color for links */
+    }
+
+    .sidebar a:hover {
+        color: #f8f9fa; /* Light gray for link hover */
+        text-decoration: none; /* Remove underline */
+    }
+
+    .sidebar .active {
+        background-color: #6f42c1; /* Purple background for active link */
+    }
+</style>
+
+
+<div class="container mt-5">
+
+    <h1>Defects Management</h1>
+    <div class="card mb-4">
+        <div class="card-header">
+            Filter Defects
+        </div>
+        <div class="card-body">
+            <form id="filterForm">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="defectId">Defect ID</label>
+                            <select class="form-control select2" id="defectId" name="defect_id"></select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="year">Year</label>
+                            <select class="form-control" id="year" name="year">
+                                <option value="">All</option>
+                                <!-- Add year options dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="month">Month</label>
+                            <select class="form-control" id="month" name="month">
+                                <option value="">All</option>
+                                <!-- Add month options dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="severity">Severity</label>
+                            <select class="form-control" id="severity" name="severity">
+                                <option value="all">All</option>
+                                <option value="Critical">Critical</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select class="form-control" id="status" name="status">
+                                <option value="all">All</option>
+                                <option value="Open">Open</option>
+                                <option value="Closed">Closed</option>
+                                <option value="New">New</option>
+                                <option value="Deferred">Deferred</option>
+                                <option value="Retest">Retest</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="fromDate">From Date</label>
+                            <input type="date" class="form-control" id="fromDate" name="from_date">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="toDate">To Date</label>
+                            <input type="date" class="form-control" id="toDate" name="to_date">
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" id="searchBtn">Search</button>
+                <button type="button" class="btn btn-secondary" id="resetBtn">Reset</button>
+            </form>
+        </div>
+    </div>
+
+        <table id="defectsTable" class="display nowrap" style="width:100%">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Defect ID</th>
+            <th>Summary</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Severity</th>
+            <th>Open Date</th>
+            <th>Environment</th>
+            <th>Application Name</th>
+            <th>Release Version</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Table rows will be dynamically populated -->
+    </tbody>
+</table>
+
+ <!-- Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="infoModalLabel">Additional Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Reported By</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="reportedBy"></p>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Reported Date</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="reportedDate"></p>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Owner</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="owner"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Steps to Reproduce</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="stepsToReproduce"></p>
+                                </div>
+                            </div>
+                             <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Comments</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="comments"></p>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Close Date</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="closeDate"></p>
+                                </div>
+                            </div>
+
+
+
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Actual Result</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="actualResult"></p>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Expected Result</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="expectedResult"></p>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Resolution</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="resolution"></p>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Attachments</label>
+                                <div class="col-sm-8">
+                                    <p class="form-control" id="attachments"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="defectModal" tabindex="-1" role="dialog" aria-labelledby="defectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="defectModalLabel">Defect</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="defectForm">
+                    <input type="hidden" id="defectIdHidden" name="id">
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="defect_id">Defect ID</label>
+                            <input type="text" class="form-control" id="defect_id" name="defect_id" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="summary">Summary</label>
+                            <input type="text" class="form-control" id="summary" name="summary" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="status">Status</label>
+                            <input type="text" class="form-control" id="status" name="status" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="priority">Priority</label>
+                            <input type="text" class="form-control" id="priority" name="priority">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="severity">Severity</label>
+                            <input type="text" class="form-control" id="severity" name="severity">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="owner">Owner</label>
+                            <input type="text" class="form-control" id="owner" name="owner">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="open_date">Open Date</label>
+                            <input type="date" class="form-control" id="open_date" name="open_date">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="close_date">Close Date</label>
+                            <input type="date" class="form-control" id="close_date" name="close_date">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="environment">Environment</label>
+                            <input type="text" class="form-control" id="environment" name="environment">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="application_name">Application Name</label>
+                            <input type="text" class="form-control" id="application_name" name="application_name">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="release_version">Release Version</label>
+                            <input type="text" class="form-control" id="release_version" name="release_version">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="reported_by">Reported By</label>
+                            <input type="text" class="form-control" id="reported_by" name="reported_by">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="reported_date">Reported Date</label>
+                            <input type="date" class="form-control" id="reported_date" name="reported_date">
+                        </div>
+                        <div class="form-group col-md-8">
+                            <label for="steps_to_reproduce">Steps to Reproduce</label>
+                            <textarea class="form-control" id="steps_to_reproduce" name="steps_to_reproduce"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="actual_result">Actual Result</label>
+                            <textarea class="form-control" id="actual_result" name="actual_result"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="expected_result">Expected Result</label>
+                            <textarea class="form-control" id="expected_result" name="expected_result"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="attachments">Attachments</label>
+                            <textarea class="form-control" id="attachments" name="attachments"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="comments">Comments</label>
+                            <textarea class="form-control" id="comments" name="comments"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label for="iteration">Iteration</label>
+                            <input type="text" class="form-control" id="iteration" name="iteration">
+                        </div>
+                        <div class="form-group col-md-8">
+                            <label for="resolution">Resolution</label>
+                            <textarea class="form-control" id="resolution" name="resolution"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.flash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.print.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2 elements
+    $('.select2').select2();
+
+    // Populate defectId filter dropdown
+    $.ajax({
+        url: '/get_defects',
+        method: 'GET',
+        success: function(data) {
+            var defectIds = data.map(function(defect) {
+                return '<option value="' + defect.defect_id + '">' + defect.defect_id + '</option>';
+            });
+            $('#defectIdFilter').append(defectIds);
+        }
+    });
+
+    // Initialize DataTable with export options
+    var table = $('#defectsTable').DataTable({
+        dom: 'Bfrtip',
+        buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+        ajax: {
+            url: '/get_defects',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'id' },
+            { data: 'defect_id' },
+            { data: 'summary' },
+            { data: 'description' },
+            { data: 'status' },
+            { data: 'priority' },
+            { data: 'severity' },
+            { data: 'open_date' },
+            { data: 'environment' },
+            { data: 'application_name' },
+            { data: 'release_version' },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    return '<button class="btn btn-primary edit-btn" data-id="' + row.Id + '" title="Edit"> <i class="bi bi-pencil-fill"></i></button>' +
+                           '<button class="btn btn-danger delete-btn" data-id="' + row.Id + '" title="Delete"> <i class="bi bi-trash"></i></button>' +
+                           '<button class="btn btn-sm btn-info ml-1 infoBtn" data-id="' + row.id + '">Info</button>';
+                }
+            }
+        ]
+    });
+
+    // Handle click on Info button
+    $('#defectsTable tbody').on('click', '.infoBtn', function() {
+        var data = table.row($(this).parents('tr')).data();
+        // Populate modal with additional data
+        populateInfoModal(data);
+    });
+
+    // Function to populate Info modal with additional data
+    function populateInfoModal(data) {
+        // Example of how to populate modal fields
+        $('#owner').text(data.owner);
+        $('#reportedBy').text(data.reported_by);
+        $('#closeDate').text(data.close_date);
+        $('#reportedDate').text(data.reported_date);
+        $('#stepsToReproduce').text(data.steps_to_reproduce);
+        $('#actualResult').text(data.actual_result);
+        $('#expectedResult').text(data.expected_result);
+        $('#attachments').text(data.attachments);
+        $('#comments').text(data.comments);
+        $('#iteration').text(data.iteration);
+        $('#resolution').text(data.resolution);
+
+        // Show the modal
+        $('#infoModal').modal('show');
+    }
+
+    // Handle form submission for add/edit defect
+    $('#defectForm').on('submit', function(e) {
+        e.preventDefault();
+        var formData = JSON.stringify($(this).serializeObject()); // Convert form data to JSON
+        console.log(formData);
+        $.ajax({
+            url: '/save_defect',
+            method: 'POST',
+            contentType: 'application/json', // Set content type to JSON
+            data: formData,
+            success: function() {
+                $('#defectModal').modal('hide');
+                table.ajax.reload();
+            }
+        });
+    });
+
+    // Show add defect modal
+    $('#addDefectBtn').on('click', function() {
+        $('#defectModalLabel').text('Add Defect');
+        $('#defectForm')[0].reset();
+        $('#defectIdHidden').val('');
+        $('#defectModal').modal('show');
+    });
+
+    // Show edit defect modal
+    $('#defectsTable tbody').on('click', '.editBtn', function() {
+        var data = table.row($(this).parents('tr')).data();
+        $('#defectModalLabel').text('Edit Defect');
+        $('#defectIdHidden').val(data.id);
+        $('#defect_id').val(data.defect_id).prop('readonly', true);
+        $('#summary').val(data.summary);
+        $('#description').val(data.description);
+        $('#status').val(data.status);
+        $('#priority').val(data.priority);
+        $('#severity').val(data.severity);
+        $('#owner').val(data.owner);
+        $('#open_date').val(data.open_date);
+        $('#close_date').val(data.close_date);
+        $('#environment').val(data.environment);
+        $('#application_name').val(data.application_name);
+        $('#release_version').val(data.release_version);
+        $('#reported_by').val(data.reported_by);
+        $('#reported_date').val(data.reported_date);
+        $('#steps_to_reproduce').val(data.steps_to_reproduce);
+        $('#actual_result').val(data.actual_result);
+        $('#expected_result').val(data.expected_result);
+        $('#attachments').val(data.attachments);
+        $('#comments').val(data.comments);
+        $('#iteration').val(data.iteration);
+        $('#resolution').val(data.resolution);
+        $('#defectModal').modal('show');
+    });
+
+    // Delete defect
+    $('#defectsTable tbody').on('click', '.deleteBtn', function() {
+        if (confirm('Are you sure you want to delete this defect?')) {
+            var defectId = $(this).data('id');
+            $.ajax({
+                url: '/delete_defect/' + defectId,
+                method: 'DELETE',
+                success: function() {
+                    table.ajax.reload();
+                }
+            });
+        }
+    });
+
+    // Filter form submission
+    $('#filterForm').on('submit', function(e) {
+        e.preventDefault();
+        var formData = $(this).serialize();
+        $.ajax({
+            url: '/filter_defects',
+            method: 'POST',
+            data: formData,
+            success: function(data) {
+                table.clear().rows.add(data).draw();
+            }
+        });
+    });
+
+    // Reset filter form
+    $('#resetFilterBtn').on('click', function() {
+        $('#filterForm')[0].reset();
+        $('#defectIdFilter').val(null).trigger('change');
+        table.ajax.reload();
+    });
+});
+
+// Extend jQuery to serialize form data into JSON object
+$.fn.serializeObject = function() {
+    var obj = {};
+    var arr = this.serializeArray();
+    $.each(arr, function() {
+        if (obj[this.name] !== undefined) {
+            if (!obj[this.name].push) {
+                obj[this.name] = [obj[this.name]];
+            }
+            obj[this.name].push(this.value || '');
+        } else {
+            obj[this.name] = this.value || '';
+        }
+    });
+    return obj;
+};
+
+</script>
+{% endblock %}

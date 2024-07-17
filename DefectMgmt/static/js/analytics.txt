@@ -1,0 +1,110 @@
+$(document).ready(function() {
+    // Populate Application Name dropdown
+    $.ajax({
+        url: '/get_application_names',
+        method: 'GET',
+        success: function(response) {
+            var options = response.applicationNames.map(function(name) {
+                return '<option value="' + name + '">' + name + '</option>';
+            });
+            $('#appNameFilter').append(options.join(''));
+        }
+    });
+
+    // Function to fetch data based on applied filters
+    function fetchData() {
+        var appName = $('#appNameFilter').val();
+        var severity = $('#severityFilter').val();
+        var criticality = $('#criticalityFilter').val();
+        var fromDate = $('#fromDateFilter').val();
+        var toDate = $('#toDateFilter').val();
+
+        $.ajax({
+            url: '/fetch_defects_data',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                appName: appName,
+                severity: severity,
+                criticality: criticality,
+                fromDate: fromDate,
+                toDate: toDate
+            }),
+            success: function(response) {
+                updateCharts(response);
+                updateDataTable(response);
+            }
+        });
+    }
+
+    // Apply filters button click handler
+    $('#applyFiltersBtn').click(function() {
+        fetchData();
+    });
+
+    // Initial data load on page load
+    fetchData();
+
+    // Function to update charts based on fetched data
+    function updateCharts(data) {
+        var totalDefectsChartCtx = document.getElementById('totalDefectsChart').getContext('2d');
+        var defectStatusChartCtx = document.getElementById('defectStatusChart').getContext('2d');
+
+        // Use data to update charts (e.g., using Chart.js library)
+        // Example chart configurations
+        // ...
+
+        if (data.totalDefects === 0) {
+            $('#noRecordsMessage').show();
+        } else {
+            $('#noRecordsMessage').hide();
+        }
+    }
+
+    // Function to update datatable based on fetched data
+    function updateDataTable(data) {
+        var tableBody = $('#defectsTable tbody');
+        tableBody.empty();
+
+        if (data.defects.length === 0) {
+            $('#noRecordsMessage').show();
+        } else {
+            $('#noRecordsMessage').hide();
+
+            // Populate table rows with data
+            data.defects.forEach(function(defect) {
+                var row = '<tr>' +
+                          '<td>' + defect.defect_id + '</td>' +
+                          '<td>' + defect.application_name + '</td>' +
+                          '<td>' + defect.release_version + '</td>' +
+                          '<td>' + defect.environment + '</td>' +
+                          '<td>' + defect.criticality + '</td>' +
+                          '<td>' + defect.severity + '</td>' +
+                          '<td><a href="#" class="defectDetailsLink" data-id="' + defect.id + '">' + defect.summary + '</a></td>' +
+                          '</tr>';
+                tableBody.append(row);
+            });
+
+            // Example of opening details in modal on row click
+            $('.defectDetailsLink').click(function(e) {
+                e.preventDefault();
+                var defectId = $(this).data('id');
+                fetchAndShowDefectDetails(defectId);
+            });
+        }
+    }
+
+    // Function to fetch and show defect details in modal
+    function fetchAndShowDefectDetails(defectId) {
+        $.ajax({
+            url: '/get_defect_details',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ defectId: defectId }),
+            success: function(response) {
+                // Use response data to populate modal and show it
+                // Example: $('#defectDetailsModal').modal('show');
+            }
+        });
+    }
+});

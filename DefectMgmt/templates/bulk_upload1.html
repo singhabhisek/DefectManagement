@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Upload</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <style type="text/css">
+    /* file upload button */
+    input[type="file"]::file-selector-button {
+        border-radius: 4px;
+        padding: 0 16px;
+        height: 40px;
+        cursor: pointer;
+        background-color: lightgray;
+        border: 1px solid rgba(0, 0, 0, 0.16);
+        box-shadow: 0px 1px 0px rgba(0, 0, 0, 0.05);
+        margin-right: 16px;
+        transition: background-color 200ms;
+    }
+</style>
+
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Bulk Upload Defects</h2>
+        <p>Please upload the defects to store in the database. After uploading, go to the <a href="/">Dashboard</a> to view the uploaded data.</p>
+<br>
+        <hr>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="fileInput">Select File</label>
+                <p style="background-color: antiquewhite; border-radius: 15px; padding: 7px;">
+                <input type="file" class="form-control-file" id="fileInput" name="file" required>
+                </p>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+        <div id="result" class="mt-3"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#uploadForm').on('submit', function(e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+                $.ajax({
+                    url: '/bulk_upload',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        $('#result').html('<div class="alert alert-success">Upload successful!</div>');
+                    },
+                    error: function(response) {
+                        $('#result').html('<div class="alert alert-danger">Upload failed: ' + response.responseText + '</div>');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

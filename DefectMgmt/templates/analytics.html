@@ -1,0 +1,516 @@
+{% extends "base.html" %} {% block title %}Analytics{% endblock %}
+<meta charset="UTF-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Defect Analytics</title>
+
+{% block content %}
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #date-range-info {
+            margin-top: 0.5rem; /* Adjust the top margin */
+            margin-bottom: 0; /* Remove bottom margin */
+            padding: 0.5rem 0; /* Adjust padding as needed */
+            font-size: 0.875rem; /* Adjust font size */
+            font-weight: bold;
+        }
+        .chart-container {
+            width: 300px;
+<!--            height: 300px;-->
+            position: relative;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            margin-right:15px;
+        }
+        .chart-header {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .chart-placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            color: grey;
+            font-size: 16px;
+        }
+        .defect-over-time-chart-container {
+            position: relative;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            width: 100%;
+<!--            height: 400px; /* Adjust height as needed */-->
+        }
+        #defect-over-time-chart {
+            width: 100%;
+            height: 100%;
+        }
+        .table-sm th,
+        .table-sm td {
+            padding: 0.5rem; /* Reduce padding for a more compact appearance */
+            font-size: 0.875rem; /* Reduce font size */
+        }
+    </style>
+
+<div class="container">
+<!--    <h1 class="mt-5">Defect Analytics</h1>-->
+    <div class="card mb-4" style="width:1200px">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Filter Defects</h6>
+            <small class="text-muted">If no date filter applied, data from the last three months will be shown.</small>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row w-100" style="margin-left:50px;">
+                    <div class="form-group mr-1" style="width:200px">
+                        <label for="application_name" class="mr-2">Application</label>
+                        <select id="application_name" name="application_name" class="form-control">
+                            <option value="">All</option>
+                            {% for app in applications %}
+                                <option value="{{ app }}">{{ app }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group mr-3" style="width:200px">
+                        <label for="severity" class="mr-2">Severity</label>
+                        <select id="severity" name="severity" class="form-control">
+                            <option value="">All</option>
+                            <option value="Critical">Critical</option>
+                            <option value="Major">Major</option>
+                            <option value="Minor">Minor</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group mr-3" style="width:200px">
+                        <label for="status" class="mr-2">Defect Status</label>
+                        <select id="status" name="status" class="form-control">
+                            <option value="">All</option>
+                            <option value="New">New</option>
+                            <option value="Open">Open</option>
+                            <option value="Assigned">Assigned</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Fixed">Fixed</option>
+                            <option value="Ready for Retest">Ready for Retest</option>
+                            <option value="Retest">Retest</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Deferred">Deferred</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="form-group mr-3" style="width:200px">
+                        <label for="from_date" class="mr-2">From Date</label>
+                        <input type="date" id="from_date" name="from_date" class="form-control">
+                    </div>
+                    <div class="form-group mr-3" style="width:200px">
+                        <label for="to_date" class="mr-2">To Date</label>
+                        <input type="date" id="to_date" name="to_date" class="form-control">
+                    </div>
+                </div>
+                <div class="row justify-content-center">
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary mr-3">Search</button>
+                        <button type="reset" class="btn btn-secondary">Reset</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <hr style="width:1200px">
+    <p id="date-range-info" class="text-muted text-center mt-2"></p>
+    <div class="row mb-3">
+        <div class="col-md-2 d-flex flex-column justify-content-center align-items-center">
+            <h1 id="total-defects" style="font-size:90px" class="text-center">0</h1>
+            <h5 class="text-center">Total Defects</h5>
+        </div>
+        <div class="col-md-10 d-flex justify-content-around">
+            <div class="chart-container">
+                <div class="chart-header">Defect Status</div>
+                <canvas id="defect-status-chart"></canvas>
+                <div class="chart-placeholder" id="status-placeholder">No records found for criteria</div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-header">Defect Severity</div>
+                <canvas id="defect-severity-chart"></canvas>
+                <div class="chart-placeholder" id="severity-placeholder">No records found for criteria</div>
+            </div>
+            <div class="defect-over-time-chart-container">
+                <div class="chart-header">Defects Over Time</div>
+                <canvas id="defect-over-time-chart" width="500" height="366" style="display: block; box-sizing: border-box; height: 293px; width: 400px;"></canvas>
+                <div class="chart-placeholder" id="time-placeholder">No records found for criteria</div>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <h6 class="mt-5">Defect Count by Severity and Status</h6>
+    <table id="crosstab-table" class="table table-striped table-bordered  table-sm">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Critical</th>
+                <th>Major</th>
+                <th>Minor</th>
+                <th>High</th>
+                <th>Low</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <hr>
+    <table id="defect-table" class="table table-striped table-bordered  table-sm">
+        <thead>
+            <tr>
+                <th>Defect ID</th>
+                <th>Status</th>
+                <th>Application</th>
+                <th>Severity</th>
+                <th>Priority</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Variables to store chart instances
+    let defectStatusChart = null;
+    let defectSeverityChart = null;
+    let defectOverTimeChart = null;
+
+    // Function to fetch data from API based on filters
+    function fetchData(filters) {
+        // If no from_date and to_date are provided, calculate last three months from today
+        if (!filters.from_date && !filters.to_date) {
+            const today = new Date();
+            const threeMonthsAgo = new Date(today);
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+            // Format dates as YYYY-MM-DD
+            filters.from_date = threeMonthsAgo.toISOString().split('T')[0];
+            filters.to_date = today.toISOString().split('T')[0];
+        }
+
+        // Function to update date range information
+        function updateDateRangeInfo(fromDate, toDate) {
+            if (!fromDate || !toDate) {
+                const today = new Date();
+                toDate = `${today.getFullYear()}-${('0' + (today.getMonth() + 1)).slice(-2)}-${('0' + today.getDate()).slice(-2)}`;
+                const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+                fromDate = `${threeMonthsAgo.getFullYear()}-${('0' + (threeMonthsAgo.getMonth() + 1)).slice(-2)}-${('0' + threeMonthsAgo.getDate()).slice(-2)}`;
+            }
+
+            const fromMonthYear = new Date(fromDate).toLocaleString('default', { month: 'short', year: 'numeric' });
+            const toMonthYear = new Date(toDate).toLocaleString('default', { month: 'short', year: 'numeric' });
+
+            document.getElementById('date-range-info').textContent = "Data shown for : " + `${fromMonthYear} to ${toMonthYear}`;
+        }
+
+        // Fetch data from API using jQuery
+        $.get('/fetch_analytics_data', filters, function(data) {
+            // Update charts and tables with fetched data
+            updateCharts(data);
+            updateTable(data);
+            updateCrossTabTable(data);
+            const fromDate = document.getElementById('from_date').value;
+            const toDate = document.getElementById('to_date').value;
+            updateDateRangeInfo(fromDate, toDate);
+        });
+    }
+
+
+    // Function to update cross-tab table with data
+    function updateCrossTabTable(data) {
+        const severityLabels = ['Critical', 'Major', 'Minor', 'High', 'Low'];
+        const statusLabels = ['New', 'Open', 'Submitted', 'Fixed', 'Closed', 'Reopened', 'Deferred', 'Rejected'];
+        const crossTabData = {};
+
+        // Initialize crossTabData with zeros for all combinations of status and severity
+        statusLabels.forEach(status => {
+            crossTabData[status] = {};
+            severityLabels.forEach(severity => {
+                crossTabData[status][severity] = 0;
+            });
+        });
+
+        // Populate crossTabData with actual counts from fetched data
+        data.forEach(defect => {
+            if (crossTabData[defect.status] && crossTabData[defect.status][defect.severity] !== undefined) {
+                crossTabData[defect.status][defect.severity]++;
+            }
+        });
+
+        // Update the cross-tab table in the HTML
+        let crossTabTableBody = $('#crosstab-table tbody');
+        crossTabTableBody.empty();
+        statusLabels.forEach(status => {
+            let row = `<tr><td>${status}</td>`;
+            severityLabels.forEach(severity => {
+                row += `<td>${crossTabData[status][severity]}</td>`;
+            });
+            row += '</tr>';
+            crossTabTableBody.append(row);
+        });
+    }
+
+    // Define color codes for severity levels
+    const severityColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966CC', '#FF9900', '#DC143C', '#ADFF2F', '#8A2BE2', '#00BFFF', '#00FF00', '#FF4500', '#9370DB', '#B22222', '#20B2AA', '#FFFF00', '#1E90FF', '#FF69B4', '#8B4513', '#00FFFF'];
+
+    // Function to update charts with fetched data
+    function updateCharts(data) {
+        // Update total defects count
+        $('#total-defects').text(data.length);
+
+        // Initialize data structures for status, severity, and time charts
+        const statusCounts = {};
+        const severityCounts = {};
+        const timeData = {};
+
+        // Calculate counts for status and severity charts from fetched data
+        data.forEach(defect => {
+            // Update status counts
+            if (statusCounts[defect.status]) {
+                statusCounts[defect.status]++;
+            } else {
+                statusCounts[defect.status] = 1;
+            }
+
+            // Update severity counts
+            if (severityCounts[defect.severity]) {
+                severityCounts[defect.severity]++;
+            } else {
+                severityCounts[defect.severity] = 1;
+            }
+        });
+
+<!--        // Initialize timeData structure for time-based chart-->
+<!--        const timeData = {};-->
+
+        // Process data to populate timeData for time-based chart
+        data.forEach(defect => {
+            const month = defect.open_date.substring(0, 7); // Extract month (format: YYYY-MM)
+            const severity = defect.severity;
+
+            if (!timeData[month]) {
+                timeData[month] = {
+                    'Critical': 0,
+                    'Major': 0,
+                    'Minor': 0,
+                    'High': 0,
+                    'Low': 0
+                };
+            }
+
+            timeData[month][severity]++;
+        });
+
+        // Destroy existing charts if they exist
+        if (defectStatusChart) {
+            defectStatusChart.destroy();
+        }
+        if (defectSeverityChart) {
+            defectSeverityChart.destroy();
+        }
+        if (defectOverTimeChart) {
+            defectOverTimeChart.destroy();
+        }
+
+        // Display time-based chart (stacked bar chart) if there is data
+        if (Object.keys(timeData).length > 0) {
+            // Prepare datasets for time-based chart
+            const months = Object.keys(timeData).sort(); // Sorted list of months
+            const datasets = [];
+
+            // Generate datasets for each severity level
+            ['Critical', 'Major', 'Minor', 'High', 'Low'].forEach(severity => {
+                const dataPoints = months.map(month => timeData[month][severity]);
+                datasets.push({
+                    label: severity,
+                    data: dataPoints,
+                    backgroundColor: getBackgroundColor(severity), // Function to get color based on severity
+                    stack: 'Stack 1' // Ensure all datasets are stacked together
+                });
+            });
+
+            // Create and render stacked bar chart for time-based data
+            const timeChartCtx = document.getElementById('defect-over-time-chart').getContext('2d');
+            defectOverTimeChart = new Chart(timeChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: datasets
+                },
+                options: {
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    responsive: false, // Ensure chart does not resize based on container
+                    maintainAspectRatio: false, // Ensure aspect ratio is not maintained
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+
+            // Show chart and hide placeholder if data is available
+            $('#defect-over-time-chart').show();
+            $('#time-placeholder').hide();
+        } else {
+            // Hide chart and show placeholder if no data is available
+            $('#defect-over-time-chart').hide();
+            $('#time-placeholder').show();
+        }
+
+        // Update status doughnut chart
+        const statusChartCtx = document.getElementById('defect-status-chart').getContext('2d');
+        if (Object.keys(statusCounts).length > 0) {
+            // Show status chart and hide placeholder if data is available
+            $('#status-placeholder').hide();
+            $('#defect-status-chart').show();
+            defectStatusChart = new Chart(statusChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966CC', '#FF9900', '#DC143C', '#ADFF2F', '#8A2BE2', '#00BFFF', '#00FF00', '#FF4500', '#9370DB', '#B22222', '#20B2AA', '#FFFF00', '#1E90FF', '#FF69B4', '#8B4513', '#00FFFF']
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        } else {
+            // Hide status chart and show placeholder if no data is available
+            $('#defect-status-chart').hide();
+            $('#status-placeholder').show();
+        }
+
+        // Update severity pie chart
+        const severityChartCtx = document.getElementById('defect-severity-chart').getContext('2d');
+        if (Object.keys(severityCounts).length > 0) {
+            // Show severity chart and hide placeholder if data is available
+            $('#severity-placeholder').hide();
+            $('#defect-severity-chart').show();
+            defectSeverityChart = new Chart(severityChartCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(severityCounts),
+                    datasets: [{
+                        data: Object.values(severityCounts),
+                        backgroundColor: ['#8A2BE2', '#FFD700', '#FF6347', '#7CFC00', '#FF69B4', '#8B4513', '#FF1493', '#4682B4', '#FFA500', '#9ACD32', '#40E0D0', '#FF6347', '#00FFFF', '#8A2BE2', '#7CFC00', '#FF69B4', '#8B4513', '#FF1493']
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        } else {
+            // Hide severity chart and show placeholder if no data is available
+            $('#defect-severity-chart').hide();
+            $('#severity-placeholder').show();
+        }
+    }
+
+    // Function to get background color for severity level
+    function getBackgroundColor(severity) {
+        switch (severity) {
+            case 'Critical':
+                return '#FF6384';
+            case 'Major':
+                return '#36A2EB';
+            case 'High':
+                return '#FFCE56';
+            case 'Low':
+                return '#4BC0C0';
+            default:
+                return '#CCCCCC';
+        }
+    }
+
+    // Function to update data table with fetched data
+    function updateTable(data) {
+        const dataTable = $('#defect-table').DataTable();
+        dataTable.clear();
+
+        // Add data rows to the table
+        if (data.length > 0) {
+            data.forEach(defect => {
+                dataTable.row.add([
+                    defect.defect_id,
+                    defect.status,
+                    defect.application_name,
+                    defect.severity,
+                    defect.priority,
+                    defect.summary
+                ]);
+            });
+            dataTable.draw(); // Redraw table to reflect new data
+        } else {
+            dataTable.draw(); // Just redraw the table to show "No records found"
+        }
+    }
+
+    // Perform initial data fetch and setup on document ready
+    $(document).ready(function() {
+        $('#defect-table').DataTable(); // Initialize DataTable for defect table
+        fetchData({}); // Fetch initial data with empty filters
+
+        // Handle form submission for filtering
+        $('form').on('submit', function(event) {
+            event.preventDefault();
+            const filters = {
+                severity: $('#severity').val(),
+                status: $('#status').val(),
+                from_date: $('#from_date').val(),
+                to_date: $('#to_date').val(),
+                application_name: $('#application_name').val()
+            };
+            fetchData(filters); // Fetch data with specified filters
+        });
+
+        // Handle form reset to clear filters
+        $('form').on('reset', function(event) {
+            event.preventDefault();
+            $('form')[0].reset(); // Reset form fields
+            fetchData({}); // Fetch data with empty filters after reset
+        });
+
+
+<!--        // Call updateDateRangeInfo initially with default three-month range-->
+<!--        updateDateRangeInfo();-->
+    });
+</script>
+{% endblock %}
